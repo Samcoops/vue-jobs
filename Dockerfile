@@ -1,23 +1,27 @@
 # syntax=docker/dockerfile:1
-ARG NODE_VERSION=19.5.0
-FROM node:${NODE_VERSION}-alpine
+FROM node:19.5.0
 
 ENV NODE_ENV development
 
 WORKDIR /usr/src/app
 
-# Install dependencies (including dev)
-# Using BuildKit mounts so you don't have to copy files first
-RUN --mount=type=bind,source=package.json,target=/usr/src/app/package.json \
-    --mount=type=bind,source=package-lock.json,target=/usr/src/app/package-lock.json \
-    --mount=type=cache,target=/root/.npm \
-    npm ci
+# Install pnpm globally
+RUN npm install -g pnpm
 
+# Copy package files only
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy the rest of the application
 COPY . .
 
+# Set permissions for the app
 RUN chown -R node:node /usr/src/app
 USER node
 
 EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
+# Run the development server
+CMD ["pnpm", "run", "dev"]
